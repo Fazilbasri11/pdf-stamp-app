@@ -1,0 +1,9 @@
+[
+  { "file": "stempel_disetujui.png", "label": "Disetujui" },
+  { "file": "stempel_selesai.png", "label": "Selesai" },
+  { "file": "stempel_lunas.png", "label": "Lunas" },
+  { "file": "stempel_sesuai_asli.png", "label": "Sesuai asli" },
+  { "file": "tanda_tangan.png", "label": "Tanda tangan" },
+  { "file": "centang.png", "label": "Centang" },
+  { "file": "prioritas.png", "label": "Prioritas" }
+]

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Cap Digital" />
+<meta name="theme-color" content="#f7f6f2" />
+<title>Cap Digital — Tempel stempel ke PDF</title>
+<meta name="description" content="Tempel stempel PNG ke dokumen PDF langsung di browser, tanpa unggah ke server." />
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <circle cx="20" cy="20" r="10.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path d="M13 22.5 L17.5 27 L27.5 15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <span class="brand-title">Cap Digital</span>
+      <span class="brand-sub">Tempel stempel ke PDF</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <label class="btn btn-outline" for="file-input">
+      <span>Unggah PDF</span>
+      <input id="file-input" type="file" accept="application/pdf" hidden />
+    </label>
+
+    <div class="page-nav" id="page-nav" hidden>
+      <button id="prev-page" class="icon-btn" aria-label="Halaman sebelumnya" disabled>‹</button>
+      <span class="page-indicator"><span id="page-current">1</span> / <span id="page-total">1</span></span>
+      <button id="next-page" class="icon-btn" aria-label="Halaman berikutnya" disabled>›</button>
+    </div>
+
+    <button id="download-btn" class="btn btn-primary" disabled>Unduh PDF</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <h2>Stempel</h2>
+      <p>Ketuk stempel untuk taruh di tengah, atau tekan-tahan lalu geser ke posisi yang kamu mau.</p>
+    </div>
+
+    <div class="stamp-grid" id="stamp-grid" aria-live="polite"></div>
+
+    <div class="sidebar-foot">
+      <label class="btn btn-ghost btn-block" for="custom-stamp-input">
+        <span>+ Tambah gambar sendiri</span>
+        <input id="custom-stamp-input" type="file" accept="image/png" multiple hidden />
+      </label>
+      <p class="hint">Gambar tambahan ini hanya berlaku untuk sesi ini. Untuk membuatnya permanen, taruh file PNG di <code>assets/stamps/</code> dan daftarkan di <code>manifest.json</code> pada repo GitHub Pages kamu.</p>
+    </div>
+  </aside>
+
+  <main class="workspace" id="workspace">
+    <div class="empty-state" id="empty-state">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="14" y="8" width="36" height="48" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+        <path d="M14 8h22l14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M36 8v14h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+        <line x1="21" y1="34" x2="43" y2="34" stroke="currentColor" stroke-width="2"/>
+        <line x1="21" y1="41" x2="43" y2="41" stroke="currentColor" stroke-width="2"/>
+        <line x1="21" y1="48" x2="35" y2="48" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <p>Belum ada dokumen. Unggah PDF untuk mulai menempel stempel.</p>
+    </div>
+
+    <div class="page-stage" id="page-stage" hidden>
+      <div class="page-sheet" id="page-sheet">
+        <canvas id="pdf-canvas"></canvas>
+        <div id="overlay" class="overlay"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="script.js" type="module"></script>
+</body>
+</html>
