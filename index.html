@@ -74,7 +74,7 @@
         <line x1="21" y1="41" x2="43" y2="41" stroke="currentColor" stroke-width="2"/>
         <line x1="21" y1="48" x2="35" y2="48" stroke="currentColor" stroke-width="2"/>
       </svg>
-      <p>Belum ada dokumen. Unggah PDF untuk mulai menempel stempel.</p>
+      <p>Belum ada dokumen. Unggah PDF, atau seret file PDF ke halaman ini untuk mulai menempel stempel.</p>
     </div>
 
     <div class="page-stage" id="page-stage" hidden>
@@ -87,6 +87,16 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="file-dropzone" id="file-dropzone" aria-hidden="true">
+  <div class="file-dropzone-box">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 6v24M24 6l-9 9M24 6l9 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 32v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <p id="dropzone-text">Lepas file PDF di sini</p>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="script.js" type="module"></script>

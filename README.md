@@ -66,18 +66,28 @@ sesi browser saat itu saja (tidak tersimpan permanen di repo).
 
 ## Cara pakai
 
-1. Klik **Unggah PDF**, pilih file PDF (atau coba dengan
-   `sample/contoh-surat.pdf`).
+1. Klik **Unggah PDF**, atau **seret file PDF langsung ke halaman ini** dari
+   mana saja (Finder/Explorer, atau app Files di iPad) — otomatis dimuat dan
+   menggantikan PDF sebelumnya. Bisa juga coba dengan
+   `sample/contoh-surat.pdf`.
 2. **Ketuk** salah satu stempel di panel untuk menempelkannya otomatis di
    tengah halaman. Atau **tekan-tahan** sebentar lalu **geser** jarinya ke
    posisi yang diinginkan sebelum dilepas — cara ini yang dipakai di iPad
    karena drag-and-drop bawaan browser tidak berjalan di iOS Safari.
-3. Ketuk stempel yang sudah ditempel untuk memunculkan kontrolnya: seret
-   badan stempel untuk memindah, seret titik ungu di pojok kanan-bawah
-   untuk mengubah ukuran, atau ketuk tombol × merah untuk menghapus.
+3. Ketuk stempel yang sudah ditempel untuk memunculkan kontrolnya:
+   - seret badan stempel untuk memindah
+   - seret salah satu dari **8 titik di tepi/sudut** untuk mengubah ukuran
+     — titik sudut mengubah lebar & tinggi sekaligus (bebas, tidak lagi
+     terkunci proporsional), titik tengah tepi mengubah lebar atau tinggi
+     saja
+   - seret **titik ke-9** (lingkaran kecil di atas, dengan ikon putar)
+     untuk memiringkan stempel — cocok untuk efek "dicap dengan tangan"
+     yang sedikit miring, layaknya stempel asli
+   - ketuk tombol × merah untuk menghapus
 4. Pindah halaman dengan tombol ‹ › di kanan atas bila PDF lebih dari satu
    halaman — stempel yang sudah ditempel di tiap halaman tetap tersimpan.
-5. Klik **Unduh PDF** untuk mengunduh dokumen hasil akhir.
+5. Klik **Unduh PDF** untuk mengunduh dokumen hasil akhir — termasuk ukuran
+   dan kemiringan yang sudah diatur.
 
 Di layar sempit (HP, iPad posisi tegak), panel stempel otomatis jadi rak
 yang bisa digeser mendatar di bagian atas, supaya halaman PDF tetap

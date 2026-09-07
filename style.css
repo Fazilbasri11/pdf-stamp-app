@@ -242,7 +242,7 @@ button{font-family:inherit;}
 .overlay{
   position:absolute;
   inset:0;
-  overflow:hidden;
+  overflow:visible;
 }
 
 /* ---------- Placed stamp ---------- */
@@ -266,36 +266,121 @@ button{font-family:inherit;}
   position:absolute;
   top:-13px;
   right:-13px;
-  width:28px;height:28px;
+  width:26px;height:26px;
   border-radius:50%;
   background:var(--danger);
   color:#fff;
   border:2px solid var(--paper);
-  font-size:15px;
+  font-size:14px;
   line-height:1;
   display:none;
   align-items:center;
   justify-content:center;
   cursor:pointer;
   touch-action:manipulation;
+  z-index:3;
 }
 .stamp-instance:hover .stamp-remove,
 .stamp-instance.active .stamp-remove{display:flex;}
 
-.stamp-resize{
+/* 8-point resize handles (4 corners + 4 edge midpoints) */
+.handle{
   position:absolute;
-  right:-11px;
-  bottom:-11px;
-  width:22px;height:22px;
+  width:16px;height:16px;
   border-radius:50%;
   background:var(--accent);
-  border:3px solid var(--paper);
-  cursor:nwse-resize;
+  border:2.5px solid var(--paper);
   display:none;
   touch-action:none;
+  z-index:2;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
 }
-.stamp-instance:hover .stamp-resize,
-.stamp-instance.active .stamp-resize{display:block;}
+.stamp-instance:hover .handle,
+.stamp-instance.active .handle{display:block;}
+
+.handle-nw{left:0;   top:0;   transform:translate(-50%,-50%); cursor:nwse-resize;}
+.handle-ne{left:100%;top:0;   transform:translate(-50%,-50%); cursor:nesw-resize;}
+.handle-se{left:100%;top:100%;transform:translate(-50%,-50%); cursor:nwse-resize;}
+.handle-sw{left:0;   top:100%;transform:translate(-50%,-50%); cursor:nesw-resize;}
+.handle-n{ left:50%; top:0;   transform:translate(-50%,-50%); cursor:ns-resize;}
+.handle-s{ left:50%; top:100%;transform:translate(-50%,-50%); cursor:ns-resize;}
+.handle-e{ left:100%;top:50%; transform:translate(-50%,-50%); cursor:ew-resize;}
+.handle-w{ left:0;   top:50%; transform:translate(-50%,-50%); cursor:ew-resize;}
+
+/* Rotate handle: the 9th point, on a stalk above the box */
+.rotate-stalk{
+  position:absolute;
+  left:50%;
+  top:-30px;
+  width:1.5px;
+  height:22px;
+  background:var(--accent);
+  transform:translateX(-50%);
+  display:none;
+  z-index:1;
+}
+.handle-rotate{
+  position:absolute;
+  left:50%;
+  top:-38px;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:var(--paper);
+  border:2.5px solid var(--accent);
+  transform:translate(-50%,-50%);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  cursor:grab;
+  touch-action:none;
+  z-index:2;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.handle-rotate svg{width:12px;height:12px;color:var(--accent);pointer-events:none;}
+.stamp-instance:hover .rotate-stalk, .stamp-instance.active .rotate-stalk,
+.stamp-instance:hover .handle-rotate, .stamp-instance.active .handle-rotate{display:flex;}
+.stamp-instance:hover .rotate-stalk, .stamp-instance.active .rotate-stalk{display:block;}
+
+.angle-badge{
+  position:absolute;
+  left:50%;
+  top:-64px;
+  transform:translateX(-50%);
+  background:var(--ink);
+  color:#fff;
+  font-family:var(--font-mono);
+  font-size:11px;
+  padding:2px 7px;
+  border-radius:5px;
+  white-space:nowrap;
+  display:none;
+  z-index:4;
+}
+.angle-badge.show{display:block;}
+
+/* ---------- Whole-page PDF drop zone ---------- */
+.file-dropzone{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(30,36,48,.5);
+}
+.file-dropzone.show{display:flex;}
+.file-dropzone-box{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  padding:34px 42px;
+  border:2.5px dashed var(--paper);
+  border-radius:14px;
+  color:#fff;
+}
+.file-dropzone-box svg{width:44px;height:44px;}
+.file-dropzone-box p{margin:0;font-size:15px;font-weight:500;}
 
 /* ---------- Toast ---------- */
 .toast{

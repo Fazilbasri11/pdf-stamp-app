@@ -45,6 +45,7 @@ function cacheEls() {
   els.canvas = document.getElementById("pdf-canvas");
   els.overlay = document.getElementById("overlay");
   els.toast = document.getElementById("toast");
+  els.dropzone = document.getElementById("file-dropzone");
 }
 
 async function init() {
@@ -102,6 +103,50 @@ function wireEvents() {
       e.preventDefault();
       removeStamp(activeStampId);
     }
+  });
+
+  wireFileDropzone();
+}
+
+// Lets a PDF be dropped anywhere on the page (from the Finder/Explorer, or
+// from the Files app on iPad) to load it, replacing whatever was open.
+function wireFileDropzone() {
+  let dragCounter = 0;
+
+  function hasFiles(e) {
+    return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+  }
+
+  window.addEventListener("dragenter", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    els.dropzone.classList.add("show");
+  });
+
+  window.addEventListener("dragover", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  });
+
+  window.addEventListener("dragleave", () => {
+    dragCounter = Math.max(0, dragCounter - 1);
+    if (dragCounter === 0) els.dropzone.classList.remove("show");
+  });
+
+  window.addEventListener("drop", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    els.dropzone.classList.remove("show");
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+      showToast("File yang diseret bukan PDF.");
+      return;
+    }
+    handleFileUpload(file);
   });
 }
 
@@ -375,6 +420,7 @@ function addStamp(src, xPt, yPt, wPt, hPt) {
     yPt: Math.max(0, yPt),
     wPt,
     hPt,
+    rotDeg: 0,
   };
   stamps.push(stamp);
   renderStampsForCurrentPage();
@@ -394,7 +440,22 @@ function setActiveStamp(id) {
   });
 }
 
-/* ---------------- Overlay rendering & drag/resize ---------------- */
+/* ---------------- Overlay rendering & drag / 9-point transform ---------------- */
+
+// Each handle: its own fractional position on the box, and which opposite
+// point stays fixed (the "anchor") while it's being dragged. "axis" says
+// whether it changes width, height, or both.
+const HANDLE_DEFS = {
+  nw: { self: { x: 0, y: 0 }, anchor: { x: 1, y: 1 }, axis: "both", cursor: "nwse-resize" },
+  ne: { self: { x: 1, y: 0 }, anchor: { x: 0, y: 1 }, axis: "both", cursor: "nesw-resize" },
+  se: { self: { x: 1, y: 1 }, anchor: { x: 0, y: 0 }, axis: "both", cursor: "nwse-resize" },
+  sw: { self: { x: 0, y: 1 }, anchor: { x: 1, y: 0 }, axis: "both", cursor: "nesw-resize" },
+  n: { self: { x: 0.5, y: 0 }, anchor: { x: 0.5, y: 1 }, axis: "y", cursor: "ns-resize" },
+  s: { self: { x: 0.5, y: 1 }, anchor: { x: 0.5, y: 0 }, axis: "y", cursor: "ns-resize" },
+  e: { self: { x: 1, y: 0.5 }, anchor: { x: 0, y: 0.5 }, axis: "x", cursor: "ew-resize" },
+  w: { self: { x: 0, y: 0.5 }, anchor: { x: 1, y: 0.5 }, axis: "x", cursor: "ew-resize" },
+};
+const MIN_STAMP_PT = 16;
 
 function renderStampsForCurrentPage() {
   els.overlay.innerHTML = "";
@@ -427,13 +488,31 @@ function buildStampEl(stamp) {
   });
   el.appendChild(removeBtn);
 
-  const resizeHandle = document.createElement("div");
-  resizeHandle.className = "stamp-resize";
-  resizeHandle.addEventListener("pointerdown", (e) => startResize(e, el, stamp));
-  el.appendChild(resizeHandle);
+  for (const key of Object.keys(HANDLE_DEFS)) {
+    const h = document.createElement("div");
+    h.className = `handle handle-${key}`;
+    h.addEventListener("pointerdown", (e) => startResizeHandle(e, el, stamp, key));
+    el.appendChild(h);
+  }
+
+  const stalk = document.createElement("div");
+  stalk.className = "rotate-stalk";
+  el.appendChild(stalk);
+
+  const rotateHandle = document.createElement("div");
+  rotateHandle.className = "handle-rotate";
+  rotateHandle.setAttribute("role", "button");
+  rotateHandle.setAttribute("aria-label", "Putar stempel");
+  rotateHandle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  rotateHandle.addEventListener("pointerdown", (e) => startRotate(e, el, stamp));
+  el.appendChild(rotateHandle);
+
+  const angleBadge = document.createElement("span");
+  angleBadge.className = "angle-badge";
+  el.appendChild(angleBadge);
 
   el.addEventListener("pointerdown", (e) => {
-    if (e.target === removeBtn || e.target === resizeHandle) return;
+    if (e.target.closest(".handle, .handle-rotate, .stamp-remove")) return;
     startMove(e, el, stamp);
   });
 
@@ -445,6 +524,7 @@ function applyStampGeometry(el, stamp) {
   el.style.top = stamp.yPt * currentScale + "px";
   el.style.width = stamp.wPt * currentScale + "px";
   el.style.height = stamp.hPt * currentScale + "px";
+  el.style.transform = `rotate(${stamp.rotDeg || 0}deg)`;
 }
 
 function startMove(e, el, stamp) {
@@ -479,36 +559,98 @@ function startMove(e, el, stamp) {
   el.addEventListener("pointerup", onUp, { once: true });
 }
 
-function startResize(e, el, stamp) {
+// General rotation-aware resize: works for all 8 handles. The point
+// opposite the dragged handle (the "anchor") stays visually fixed on the
+// page — including while the stamp is rotated — by doing the drag math in
+// the box's own (rotated) local coordinate frame, then converting back.
+function startResizeHandle(e, el, stamp, handleKey) {
   e.preventDefault();
   e.stopPropagation();
   setActiveStamp(stamp.id);
   el.setPointerCapture(e.pointerId);
 
-  const startX = e.clientX;
-  const startWidthPx = stamp.wPt * currentScale;
-  const aspect = stamp.hPt / stamp.wPt;
-  const boundsW = els.overlay.clientWidth;
-  const boundsH = els.overlay.clientHeight;
-  const leftPx = stamp.xPt * currentScale;
-  const topPx = stamp.yPt * currentScale;
+  const def = HANDLE_DEFS[handleKey];
+  const startClientX = e.clientX;
+  const startClientY = e.clientY;
+  const wStart = stamp.wPt;
+  const hStart = stamp.hPt;
+  const centerStart = { x: stamp.xPt + wStart / 2, y: stamp.yPt + hStart / 2 };
+  const theta = ((stamp.rotDeg || 0) * Math.PI) / 180;
+  const cosT = Math.cos(theta);
+  const sinT = Math.sin(theta);
+
+  const anchorLocal = { x: (def.anchor.x - 0.5) * wStart, y: (def.anchor.y - 0.5) * hStart };
+  const anchorGlobal = {
+    x: centerStart.x + (cosT * anchorLocal.x - sinT * anchorLocal.y),
+    y: centerStart.y + (sinT * anchorLocal.x + cosT * anchorLocal.y),
+  };
+  const draggedLocalStart = {
+    x: (def.self.x - def.anchor.x) * wStart,
+    y: (def.self.y - def.anchor.y) * hStart,
+  };
 
   function onMove(ev) {
-    const dx = ev.clientX - startX;
-    let newWidthPx = clamp(startWidthPx + dx, 24, boundsW - leftPx);
-    let newHeightPx = newWidthPx * aspect;
-    if (topPx + newHeightPx > boundsH) {
-      newHeightPx = boundsH - topPx;
-      newWidthPx = newHeightPx / aspect;
-    }
-    stamp.wPt = newWidthPx / currentScale;
-    stamp.hPt = newHeightPx / currentScale;
-    el.style.width = newWidthPx + "px";
-    el.style.height = newHeightPx + "px";
+    const dxPt = (ev.clientX - startClientX) / currentScale;
+    const dyPt = (ev.clientY - startClientY) / currentScale;
+    const localDx = cosT * dxPt + sinT * dyPt;
+    const localDy = -sinT * dxPt + cosT * dyPt;
+    const draggedLocalNew = { x: draggedLocalStart.x + localDx, y: draggedLocalStart.y + localDy };
+
+    let newW = wStart;
+    let newH = hStart;
+    if (def.axis === "both" || def.axis === "x") newW = Math.max(MIN_STAMP_PT, Math.abs(draggedLocalNew.x));
+    if (def.axis === "both" || def.axis === "y") newH = Math.max(MIN_STAMP_PT, Math.abs(draggedLocalNew.y));
+
+    const newCenterLocal = { x: (0.5 - def.anchor.x) * newW, y: (0.5 - def.anchor.y) * newH };
+    const newCenter = {
+      x: anchorGlobal.x + (cosT * newCenterLocal.x - sinT * newCenterLocal.y),
+      y: anchorGlobal.y + (sinT * newCenterLocal.x + cosT * newCenterLocal.y),
+    };
+
+    stamp.wPt = newW;
+    stamp.hPt = newH;
+    stamp.xPt = newCenter.x - newW / 2;
+    stamp.yPt = newCenter.y - newH / 2;
+    applyStampGeometry(el, stamp);
   }
   function onUp() {
     el.removeEventListener("pointermove", onMove);
     el.removeEventListener("pointerup", onUp);
+  }
+  el.addEventListener("pointermove", onMove);
+  el.addEventListener("pointerup", onUp, { once: true });
+}
+
+function startRotate(e, el, stamp) {
+  e.preventDefault();
+  e.stopPropagation();
+  setActiveStamp(stamp.id);
+  el.setPointerCapture(e.pointerId);
+
+  const rect = el.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const startAngle = (Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180) / Math.PI;
+  const startRot = stamp.rotDeg || 0;
+  const badge = el.querySelector(".angle-badge");
+  if (badge) {
+    badge.classList.add("show");
+    badge.textContent = Math.round(startRot) + "\u00B0";
+  }
+
+  function onMove(ev) {
+    const angle = (Math.atan2(ev.clientY - centerY, ev.clientX - centerX) * 180) / Math.PI;
+    let next = startRot + (angle - startAngle);
+    next = ((next % 360) + 360) % 360;
+    if (next > 180) next -= 360;
+    stamp.rotDeg = next;
+    applyStampGeometry(el, stamp);
+    if (badge) badge.textContent = Math.round(next) + "\u00B0";
+  }
+  function onUp() {
+    el.removeEventListener("pointermove", onMove);
+    el.removeEventListener("pointerup", onUp);
+    if (badge) badge.classList.remove("show");
   }
   el.addEventListener("pointermove", onMove);
   el.addEventListener("pointerup", onUp, { once: true });
@@ -550,9 +692,35 @@ async function downloadStampedPdf() {
           embedded = await pdfLibDoc.embedPng(bytes);
           embeddedCache.set(s.src, embedded);
         }
-        const x = s.xPt;
-        const y = dims.h - s.yPt - s.hPt;
-        pdfPage.drawImage(embedded, { x, y, width: s.wPt, height: s.hPt });
+
+        const rotDeg = s.rotDeg || 0;
+        if (rotDeg === 0) {
+          const x = s.xPt;
+          const y = dims.h - s.yPt - s.hPt;
+          pdfPage.drawImage(embedded, { x, y, width: s.wPt, height: s.hPt });
+        } else {
+          // pdf-lib rotates counter-clockwise around the image's own
+          // bottom-left corner, in a y-up space — the opposite handedness
+          // from the CSS rotation (clockwise, y-down) used on screen. We
+          // negate the angle and solve for the bottom-left anchor that
+          // keeps the same visual center after that rotation is applied.
+          const centerX = s.xPt + s.wPt / 2;
+          const centerY = dims.h - (s.yPt + s.hPt / 2);
+          const phi = (-rotDeg * Math.PI) / 180;
+          const cosP = Math.cos(phi);
+          const sinP = Math.sin(phi);
+          const halfW = s.wPt / 2;
+          const halfH = s.hPt / 2;
+          const anchorX = centerX - (cosP * halfW - sinP * halfH);
+          const anchorY = centerY - (sinP * halfW + cosP * halfH);
+          pdfPage.drawImage(embedded, {
+            x: anchorX,
+            y: anchorY,
+            width: s.wPt,
+            height: s.hPt,
+            rotate: window.PDFLib.degrees(-rotDeg),
+          });
+        }
       }
     }
 
